@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    android:layout_marginTop="10dp"
+    android:layout_marginBottom="10dp"
+    android:layout_marginLeft="10dp"
+    android:layout_marginRight="10dp"
+-->
+<org.zenu.home.SortableGridView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/directory"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:numColumns="5"
+    android:verticalSpacing="4dp"
+    android:layout_gravity="top"
+    />
