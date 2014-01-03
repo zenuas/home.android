@@ -237,7 +237,14 @@ public class SortableGridView
 		{
 			if(to < 0)
 			{
-				adapter_.appendLast(from);
+				if(isStackFromBottom())
+				{
+					adapter_.shiftPosition(from, 0);
+				}
+				else
+				{
+					adapter_.appendLast(from);
+				}
 			}
 			else
 			{

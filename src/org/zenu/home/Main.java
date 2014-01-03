@@ -8,7 +8,10 @@ import java.util.List;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
@@ -46,9 +49,9 @@ public class Main
 	{
 		final SortableGridView grid = (SortableGridView) findViewById(R.id.home);
 		grid_ = grid;
-
+		
 		final LayoutInflater inflater_ = getLayoutInflater();
-
+		
 		root_ = getApplications();
 		grid.setAdapter(new SortableArrayAdapter<Entry>(this, 0, root_.getEntries())
 			{
@@ -65,7 +68,7 @@ public class Main
 					if(convertView == null)
 					{
 						convertView = inflater_.inflate(R.layout.item, parent, false);
-
+						
 						item = new ViewHolder();
 						item.icon = (ImageView) convertView.findViewById(R.id.icon);
 						item.text = (TextView) convertView.findViewById(R.id.edit);
@@ -76,7 +79,7 @@ public class Main
 					{
 						item = (ViewHolder) convertView.getTag();
 					}
-
+					
 					if(position < getCount())
 					{
 						Entry app = getItem(position);
@@ -93,14 +96,14 @@ public class Main
 					super.switchingPosition(from, to);
 					Main.this.saveApplications();
 				}
-
+				
 				@Override
 				public void shiftPosition(int from, int to)
 				{
 					super.shiftPosition(from, to);
 					Main.this.saveApplications();
 				}
-
+				
 				@Override
 				public void appendLast(int from)
 				{
@@ -123,7 +126,7 @@ public class Main
 			implements OnItemDropListener, OnItemDragListener
 		{
 			private int drag_to_create_directory_ = -1;
-
+			
 			@Override
 			public boolean onItemDrop(AdapterView<?> parent, int from, int to, float x, float y)
 			{
@@ -154,7 +157,7 @@ public class Main
 				}
 				return(false);
 			}
-
+			
 			@SuppressWarnings("deprecation")
 			@Override
 			public void onItemDrag(AdapterView<?> parent, int from, int to, float x, float y, boolean isdrag_start)
@@ -167,7 +170,7 @@ public class Main
 				
 				if(isdrag_start)
 				{
-					final int DRAG_IMAGE_ALPHA = (int)(0xFF * 0.75);
+					final int DRAG_IMAGE_ALPHA = (int) (0xFF * 0.75);
 					
 					//grid.getDragItem().startAnimation(AnimationUtils.loadAnimation(grid.getContext(), R.anim.drag_start));
 					grid.getDragItem().setAlpha(DRAG_IMAGE_ALPHA);
@@ -217,7 +220,46 @@ public class Main
 		grid.setOnItemDropListener(dd);
 		grid.setOnItemDragListener(dd);
 	}
-
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		super.onCreateOptionsMenu(menu);
+		
+		getMenuInflater().inflate(R.menu.main, menu);
+		return(true);
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		switch(item.getItemId())
+		{
+		case R.id.hidden_applications:
+			
+			ApplicationContext appcontext = (ApplicationContext) getApplicationContext();
+			Intent intent = new Intent();
+			intent.setClass(this, HiddenApplications.class);
+			intent.putExtra(HiddenApplications.class.getName() + ".apps", appcontext.setObjectStore(getLauncherApplications()));
+			intent.putExtra(HiddenApplications.class.getName() + ".hidden", appcontext.setObjectStore(getHiddenApplications()));
+			
+			this.startActivity(intent);
+			break;
+		
+		default:
+			return(false);
+		}
+		return(true);
+	}
+	
+	public List<ResolveInfo> getLauncherApplications()
+	{
+		Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+		mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+		
+		return(getPackageManager().queryIntentActivities(mainIntent, 0));
+	}
+	
 	public DirectoryEntry getApplications()
 	{
 		class Order
@@ -240,10 +282,7 @@ public class Main
 			order.put(x.pkg, x);
 		}
 		
-		Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-		mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-		
-		List<ResolveInfo> apps = getPackageManager().queryIntentActivities(mainIntent, 0);
+		List<ResolveInfo> apps = getLauncherApplications();
 		Collections.sort(apps, new Comparator<ResolveInfo>()
 			{
 				@Override
@@ -253,20 +292,23 @@ public class Main
 					String right = rhs.activityInfo.applicationInfo.packageName;
 					boolean left_contains = order.containsKey(left);
 					boolean right_contains = order.containsKey(right);
-
+					
 					if(!left_contains && !right_contains) {return(0);}
 					if(!left_contains && right_contains) {return(-1);}
 					if(left_contains && !right_contains) {return(1);}
 					
 					return(order.get(left).by - order.get(right).by);
 				}
-			
+				
 			});
 		
 		DirectoryEntry root = new DirectoryEntry(this, null, "");
+		HashMap<String, Boolean> hidden = getHiddenApplications();
 		for(ResolveInfo app : apps)
 		{
 			String pkg = app.activityInfo.applicationInfo.packageName;
+			if(hidden.containsKey(pkg) && hidden.get(pkg)) {continue;}
+			
 			if(order.containsKey(pkg))
 			{
 				Order x = order.get(pkg);
@@ -321,5 +363,45 @@ public class Main
 		Editor edit = getPreferences(MODE_PRIVATE).edit();
 		edit.putString("applications-order", s.toString());
 		edit.commit();
+	}
+
+	public HashMap<String, Boolean> getHiddenApplications()
+	{
+		HashMap<String, Boolean> hidden = new HashMap<String, Boolean>();
+		
+		for(String pkg : getPreferences(MODE_PRIVATE).getString("applications-hidden", "").split("\n"))
+		{
+			if(pkg.length() == 0) {continue;}
+			
+			hidden.put(pkg, true);
+		}
+		return(hidden);
+	}
+
+	public void saveHiddenApplications(HashMap<String, Boolean> hidden)
+	{
+		StringBuffer s = new StringBuffer(
+			);
+		for(String pkg : hidden.keySet())
+		{
+			if(hidden.get(pkg))
+			{
+				s.append(pkg + "\n");
+			}
+		}
+		Editor edit = getPreferences(MODE_PRIVATE).edit();
+		edit.putString("applications-hidden", s.toString());
+		edit.commit();
+	}
+	
+	@Override
+	public boolean dispatchKeyEvent(KeyEvent e)
+	{
+		switch(e.getKeyCode())
+		{
+		case KeyEvent.KEYCODE_BACK:
+			return(true);
+		}
+		return(super.dispatchKeyEvent(e));
 	}
 }

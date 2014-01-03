@@ -39,6 +39,10 @@
             android:theme="@android:style/Theme.Dialog"
             />
 
+        <activity android:name="HiddenApplications"
+            android:theme="@android:style/Theme"
+            />
+
         <receiver
             android:name="PackageChangedReceiver"
             >
