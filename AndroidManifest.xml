@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.zenu.home"
     android:versionCode="1"
     android:versionName="1.0" >
@@ -35,11 +36,13 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="DirectoryActivity"
+        <activity
+            android:name="DirectoryActivity"
             android:theme="@android:style/Theme.Dialog"
             />
 
-        <activity android:name="HiddenApplications"
+        <activity
+            android:name="HiddenApplications"
             android:theme="@android:style/Theme"
             />
 
@@ -48,9 +51,10 @@
             >
             
             <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
                 <action android:name="android.intent.action.PACKAGE_CHANGED" />
-                <action android:name="android.intent.action.PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
                 <data android:scheme="package" />
             </intent-filter>
         </receiver>

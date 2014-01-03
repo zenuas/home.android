@@ -3,6 +3,7 @@ package org.zenu.home;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 
 public class PackageChangedReceiver
@@ -17,9 +18,9 @@ public class PackageChangedReceiver
 		{
 			return;
 		}
+		Log.v("PackageChangedReceiver", "act=" + intent.getAction() + ", pkg=" + packageName);
 		
-		Context x = context.getApplicationContext();
-		ApplicationContext app = (ApplicationContext) x;
+		ApplicationContext app = (ApplicationContext) context.getApplicationContext();
 		app.removePackageFromDB(packageName);
 	}
 }

@@ -328,6 +328,7 @@ public class Main
 				new ApplicationEntry(this, root, app);
 			}
 		}
+		Collections.reverse(root.getEntries());
 		
 		return(root);
 	}
@@ -341,25 +342,37 @@ public class Main
 	{
 		class Saver
 		{
+			public void searchRootApplication(Context context, DirectoryEntry dir, String path, StringBuffer s)
+			{
+				List<Entry> xs = dir.getEntries();
+				for(int i = 0; i < xs.size(); i++)
+				{
+					searchApplicationEntry(context, xs.get(xs.size() - 1 - i), path, s);
+				}
+			}
 			public void searchApplication(Context context, DirectoryEntry dir, String path, StringBuffer s)
 			{
 				for(Entry x : dir.getEntries())
 				{
-					String title = path + "/" + x.getEntryName(context);
-					if(x instanceof DirectoryEntry)
-					{
-						searchApplication(context, (DirectoryEntry) x, title, s);
-					}
-					else
-					{
-						s.append(title + "\n");
-					}
+					searchApplicationEntry(context, x, path, s);
+				}
+			}
+			public void searchApplicationEntry(Context context, Entry entry, String path, StringBuffer s)
+			{
+				String title = path + "/" + entry.getEntryName(context);
+				if(entry instanceof DirectoryEntry)
+				{
+					searchApplication(context, (DirectoryEntry) entry, title, s);
+				}
+				else
+				{
+					s.append(title + "\n");
 				}
 			}
 		}
 		
 		StringBuffer s = new StringBuffer();
-		new Saver().searchApplication(this, root, "", s);
+		new Saver().searchRootApplication(this, root, "", s);
 		Editor edit = getPreferences(MODE_PRIVATE).edit();
 		edit.putString("applications-order", s.toString());
 		edit.commit();
@@ -380,8 +393,7 @@ public class Main
 
 	public void saveHiddenApplications(HashMap<String, Boolean> hidden)
 	{
-		StringBuffer s = new StringBuffer(
-			);
+		StringBuffer s = new StringBuffer();
 		for(String pkg : hidden.keySet())
 		{
 			if(hidden.get(pkg))

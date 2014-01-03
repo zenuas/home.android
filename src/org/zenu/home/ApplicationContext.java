@@ -4,7 +4,6 @@ import java.util.Random;
 
 import android.app.Activity;
 import android.app.Application;
-import android.util.Log;
 import android.util.SparseArray;
 
 
@@ -30,7 +29,10 @@ public class ApplicationContext
 	
 	public void removePackageFromDB(String packageName)
 	{
-		Log.v("removePackageFromDB", packageName);
+		Main main = (Main) getMainActivity();
+		if(main == null) {return;}
+		
+		main.createHome();
 	}
 	
 	public class ObjectStore
