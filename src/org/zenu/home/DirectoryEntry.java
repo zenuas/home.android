@@ -147,7 +147,7 @@ public class DirectoryEntry
 	@Override
 	public Entry join(Context context, Entry entry)
 	{
-		appendChild(context, entry);
+		entry.moveParentEntry(context, this);
 		return(this);
 	}
 

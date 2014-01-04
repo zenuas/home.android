@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.ResolveInfo;
+import android.graphics.Rect;
 
 
 public class Main
@@ -152,13 +153,13 @@ public class Main
 					
 					apps.remove(new_entry);
 					apps.insert(new_entry, to - (from < to ? 1 : 0));
+					apps.notifyDataSetChanged();
 					Main.this.saveApplications();
 					return(true);
 				}
 				return(false);
 			}
 			
-			@SuppressWarnings("deprecation")
 			@Override
 			public void onItemDrag(AdapterView<?> parent, int from, int to, float x, float y, boolean isdrag_start)
 			{
@@ -166,17 +167,21 @@ public class Main
 				final double ENTRY_CENTER_Y = 0.3;
 				final double DISTANCE_FROM_CENTER = 0.25;
 				
-				//Log.v("onItemDrag", "x=" + x + ", y=" + y + ", r=" + Math.sqrt(Math.pow(x - ENTRY_CENTER_X, 2) + Math.pow(y - ENTRY_CENTER_Y, 2)));
-				
-				if(isdrag_start)
+				float px = 0;
+				float py = 0;
+				View view;
+				if(to >= 0 && (view = grid.getChildAt(to - grid.getFirstVisiblePosition())) != null)
 				{
-					final int DRAG_IMAGE_ALPHA = (int) (0xFF * 0.75);
+					Rect frame = new Rect();
+					view.getHitRect(frame);
 					
-					//grid.getDragItem().startAnimation(AnimationUtils.loadAnimation(grid.getContext(), R.anim.drag_start));
-					grid.getDragItem().setAlpha(DRAG_IMAGE_ALPHA);
+					px = (x - frame.left) / frame.width();
+					py = (y - frame.top) / frame.height();
 				}
-				else if(from != to && to >= 0 &&
-					Math.sqrt(Math.pow(x - ENTRY_CENTER_X, 2) + Math.pow(y - ENTRY_CENTER_Y, 2)) < DISTANCE_FROM_CENTER)
+				//Log.v("onItemDrag", "x=" + px + ", y=" + py + ", r=" + Math.sqrt(Math.pow(px - ENTRY_CENTER_X, 2) + Math.pow(py - ENTRY_CENTER_Y, 2)));
+				
+				if(from != to && to >= 0 &&
+					Math.sqrt(Math.pow(px - ENTRY_CENTER_X, 2) + Math.pow(py - ENTRY_CENTER_Y, 2)) < DISTANCE_FROM_CENTER)
 				{
 					if(drag_to_create_directory_ != to && isDirectoryCreating())
 					{
@@ -206,7 +211,7 @@ public class Main
 				if(isDirectoryCreating())
 				{
 					View view = parent.getChildAt(drag_to_create_directory_ - grid.getFirstVisiblePosition());
-					if(view != null) {view.getAnimation().cancel();}
+					if(view != null) {view.clearAnimation();}
 				}
 				drag_to_create_directory_ = -1;
 			}

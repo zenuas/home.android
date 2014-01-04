@@ -54,7 +54,7 @@ public class DirectoryActivity
 					if(convertView == null)
 					{
 						convertView = inflater_.inflate(R.layout.item, parent, false);
-
+						
 						item = new ViewHolder();
 						item.icon = (ImageView) convertView.findViewById(R.id.icon);
 						item.text = (TextView) convertView.findViewById(R.id.edit);
@@ -65,7 +65,7 @@ public class DirectoryActivity
 					{
 						item = (ViewHolder) convertView.getTag();
 					}
-
+					
 					if(position < getCount())
 					{
 						Entry app = getItem(position);
@@ -82,14 +82,14 @@ public class DirectoryActivity
 					super.switchingPosition(from, to);
 					((Main) ((ApplicationContext) DirectoryActivity.this.getApplicationContext()).getMainActivity()).saveApplications();
 				}
-
+				
 				@Override
 				public void shiftPosition(int from, int to)
 				{
 					super.shiftPosition(from, to);
 					((Main) ((ApplicationContext) DirectoryActivity.this.getApplicationContext()).getMainActivity()).saveApplications();
 				}
-
+				
 				@Override
 				public void appendLast(int from)
 				{
@@ -125,15 +125,14 @@ public class DirectoryActivity
 				else
 				{
 					View dector = DirectoryActivity.this.getWindow().getDecorView();
+					int onscreen[] = new int[2];
+					dector.getLocationOnScreen(onscreen);
 					Main main = ((Main) ((ApplicationContext) DirectoryActivity.this.getApplicationContext()).getMainActivity());
 					
-					//Log.v("drop", "x=" + x + ", y=" + y);
-					//Log.v("dector", "width=" + dector.getWidth() + ", height=" + dector.getHeight());
-					
-					if(0 <= x &&
-						dector.getWidth() >= x &&
-						0 <= y &&
-						dector.getHeight() >= y)
+					if(onscreen[0] <= x &&
+						onscreen[0] + dector.getWidth() >= x &&
+						onscreen[1] <= y &&
+						onscreen[1] + dector.getHeight() >= y)
 					{
 						entry_.destroyIconCache();
 						((BaseAdapter) main.getGrid().getAdapter()).notifyDataSetChanged();
@@ -150,6 +149,7 @@ public class DirectoryActivity
 						}
 						main.saveApplications();
 						((BaseAdapter) main.getGrid().getAdapter()).notifyDataSetChanged();
+						((BaseAdapter) parent.getAdapter()).notifyDataSetChanged();
 						return(true);
 					}
 				}

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.PointF;
-import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -21,11 +20,6 @@ import android.widget.ListAdapter;
  * reference by:
  *   SortableListViewLayout
  *   http://visible-true.blogspot.jp/2011/01/android22-gridviewlistview.html
- * 
- * getParams での設定で FLAG_LAYOUT_IN_SCREEN を追加すると
- * onTouchEventのタッチ位置(last_touch_pos_)にステータスバーが含まれない
- * その上でドラッグ開始時に子Viewの位置とタッチ位置の補正を行い(view_to_touch_gap_pos_)
- * 子Viewをそのままスライドするように見せかける
  * 
  * 課題:
  *   * ドラッグ開始時に開始元になる子ビューへ変化(色変更、アニメーション)を付けたい
@@ -51,14 +45,14 @@ public class SortableGridView
 	{
 		this(context, null);
 	}
-
+	
 	public SortableGridView(Context context, AttributeSet attrs)
 	{
 		super(context, attrs);
 		
 		setOnItemLongClickListener(this);
 	}
-
+	
 	private SortableAdapter adapter_;
 	@Override
 	public void setAdapter(ListAdapter adapter)
@@ -71,21 +65,21 @@ public class SortableGridView
 		adapter_ = (SortableAdapter) adapter;
 		super.setAdapter(adapter);
 	}
-
+	
 	private ImageView drag_image_;
 	public ImageView getDragItem()
 	{
 		if(drag_image_ == null) {drag_image_ = new ImageView(getContext());}
 		return(drag_image_);
 	}
-
+	
 	private WindowManager window_manager_;
 	public WindowManager getWindowManager()
 	{
 		if(window_manager_ == null) {window_manager_ = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);}
 		return(window_manager_);
 	}
-
+	
 	private WindowManager.LayoutParams layout_params_;
 	public WindowManager.LayoutParams getParams()
 	{
@@ -111,31 +105,42 @@ public class SortableGridView
 		}
 		return(layout_params_);
 	}
-
+	
 	private int drag_start_pos_ = -1;
+	private Point view_to_touch_gap_pos_ = new Point();
+	@SuppressWarnings("deprecation")
 	@Override
 	public boolean onItemLongClick(AdapterView<?> adapter, View view, int pos, long id)
 	{
 		drag_start_pos_ = pos;
+		final int DRAG_IMAGE_ALPHA = (int) (0xFF * 0.75);
 		
 		View convertView = getAdapter().getView(pos, view, null);
 		convertView.setDrawingCacheEnabled(true);
 		convertView.buildDrawingCache();
 		getDragItem().setImageBitmap(convertView.getDrawingCache());
-		moveDragItem(pos, last_touch_pos_, true);
+		getDragItem().setAlpha(DRAG_IMAGE_ALPHA);
+		
+		int onscreen[] = new int[2];
+		convertView.getLocationOnScreen(onscreen);
+		
+		// ドラッグ開始時に子Viewの位置とタッチ位置の補正を行い、子Viewをそのままスライドするように見せかける
+		view_to_touch_gap_pos_.x = (int) last_touch_pos_.x - onscreen[0];
+		view_to_touch_gap_pos_.y = (int) last_touch_pos_.y - onscreen[1];
+		moveDragItem(pos, last_touch_pos_.x - view_to_touch_gap_pos_.x, last_touch_pos_.y - view_to_touch_gap_pos_.y, true);
 		return(true);
 	}
-
+	
 	public boolean isDragging()
 	{
 		return(drag_start_pos_ >= 0);
 	}
-
+	
 	public void clearDragging()
 	{
 		drag_start_pos_ = -1;
 	}
-
+	
 	private PointF last_touch_pos_ = new PointF();
 	@Override
 	public boolean onTouchEvent(MotionEvent ev)
@@ -152,7 +157,7 @@ public class SortableGridView
 			if(isDragging())
 			{
 				stopScroll();
-				drop(drag_start_pos_, last_touch_pos_);
+				drop(drag_start_pos_, last_touch_pos_.x - view_to_touch_gap_pos_.x, last_touch_pos_.y - view_to_touch_gap_pos_.y);
 			}
 			break;
 		case MotionEvent.ACTION_MOVE:
@@ -160,7 +165,7 @@ public class SortableGridView
 			last_touch_pos_.y = ev.getY();
 			if(isDragging())
 			{
-				moveDragItem(drag_start_pos_, last_touch_pos_, false);
+				moveDragItem(drag_start_pos_, last_touch_pos_.x - view_to_touch_gap_pos_.x, last_touch_pos_.y - view_to_touch_gap_pos_.y, false);
 				if(last_touch_pos_.y - getDragItem().getHeight() / 4 < 0)
 				{
 					isloop_ = true;
@@ -180,22 +185,12 @@ public class SortableGridView
 		}
 		return(super.onTouchEvent(ev));
 	}
-
-	private Point view_to_touch_gap_pos_ = new Point();
-	public void moveDragItem(int from, PointF last_touch_pos, boolean isdrag_start)
+	
+	public void moveDragItem(int from, float x, float y, boolean isdrag_start)
 	{
-		if(isdrag_start)
-		{
-			View view = ((AdapterView<?>) this).getChildAt(from - getFirstVisiblePosition());
-			int onscreen[] = new int[2];
-			view.getLocationOnScreen(onscreen);
-			
-			view_to_touch_gap_pos_.x = (int) last_touch_pos.x - onscreen[0];
-			view_to_touch_gap_pos_.y = (int) last_touch_pos.y - onscreen[1];
-		}
-		getParams().x = (int) last_touch_pos.x - view_to_touch_gap_pos_.x;
-		getParams().y = (int) last_touch_pos.y - view_to_touch_gap_pos_.y;
-
+		getParams().x = (int) x;
+		getParams().y = (int) y;
+		
 		if(isdrag_start)
 		{
 			getWindowManager().addView(getDragItem(), getParams());
@@ -207,31 +202,25 @@ public class SortableGridView
 		
 		if(OnItemDragListener_ != null)
 		{
-			int to = pointToPosition((int) last_touch_pos.x, (int) last_touch_pos.y);
-			float x = 0;
-			float y = 0;
-			View view;
-			if(to >= 0 && (view = getChildAt(to - getFirstVisiblePosition())) != null)
-			{
-				Rect frame = new Rect();
-				view.getHitRect(frame);
-
-				x = (last_touch_pos.x - view_to_touch_gap_pos_.x - frame.left) / frame.width();
-				y = (last_touch_pos.y - view_to_touch_gap_pos_.y - frame.top) / frame.height();
-			}
-			OnItemDragListener_.onItemDrag(this, from, to, x, y, isdrag_start);
+			int onscreen[] = new int[2];
+			getLocationOnScreen(onscreen);
+			
+			OnItemDragListener_.onItemDrag(this, from, pointToPosition((int) x - onscreen[0], (int) y - onscreen[1]), x, y, isdrag_start);
 		}
 	}
-
-	public void drop(int from, PointF last_touch_pos)
+	
+	public void drop(int from, float x, float y)
 	{
 		getWindowManager().removeView(getDragItem());
-
-		int to = pointToPosition((int) last_touch_pos.x, (int) last_touch_pos.y);
+		
+		int onscreen[] = new int[2];
+		getLocationOnScreen(onscreen);
+		
+		int to = pointToPosition((int) x - onscreen[0], (int) y - onscreen[1]);
 		boolean skip = false;
 		if(OnItemDropListener_ != null)
 		{
-			skip = OnItemDropListener_.onItemDrop(this, from, to, last_touch_pos.x, last_touch_pos.y);
+			skip = OnItemDropListener_.onItemDrop(this, from, to, x, y);
 		}
 		if(!skip)
 		{
@@ -251,7 +240,7 @@ public class SortableGridView
 				adapter_.shiftPosition(from, to);
 			}
 		}
-
+		
 		clearDragging();
 		invalidateViews();
 	}
@@ -267,7 +256,7 @@ public class SortableGridView
 	{
 		OnItemDropListener_ = listener;
 	}
-
+	
 	private boolean isloop_ = false;
 	public void startPrevScroll()
 	{
@@ -284,7 +273,7 @@ public class SortableGridView
 				}
 			}, 200);
 	}
-
+	
 	public void startNextScroll()
 	{
 		getHandler().postDelayed(new Runnable()
@@ -300,7 +289,7 @@ public class SortableGridView
 				}
 			}, 200);
 	}
-
+	
 	public void stopScroll()
 	{
 		isloop_ = false;
