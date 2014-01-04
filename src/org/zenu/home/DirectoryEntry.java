@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 
@@ -74,15 +75,33 @@ public class DirectoryEntry
 			if(size > 0)
 			{
 				final int MAX_DRAWABLE_ICON = 3;
+				final double OFFSET_X[][] = {
+						/* draw_icon_count = 1 */ {0.125},
+						/* draw_icon_count = 2 */ {0.000, 0.200},
+						/* draw_icon_count = 3 */ {0.000, 0.100, 0.250},
+					};
+				final double OFFSET_Y[][] = {
+						/* draw_icon_count = 1 */ {0.125},
+						/* draw_icon_count = 2 */ {0.000, 0.200},
+						/* draw_icon_count = 3 */ {0.000, 0.065, 0.250},
+					};
+				final double SCALE_SIZE[][] = {
+						/* draw_icon_count = 1 */ {0.8},
+						/* draw_icon_count = 2 */ {0.7, 0.8},
+						/* draw_icon_count = 3 */ {0.5, 0.6, 0.75},
+					};
 				int draw_icon_count = Math.min(size, MAX_DRAWABLE_ICON);
 				
 				for(int i = 0; i < draw_icon_count; i++)
 				{
-					canvas.drawBitmap(
-						((BitmapDrawable) getEntries().get(draw_icon_count - i - 1).getIcon(context)).getBitmap(),
-						(i * height / 4.0f) / draw_icon_count,
-						(i * width / 3.0f) / draw_icon_count,
-						null);
+					int x = (int) (width * OFFSET_X[draw_icon_count - 1][i]);
+					int y = (int) (height * OFFSET_Y[draw_icon_count - 1][i]);
+					double scale = SCALE_SIZE[draw_icon_count - 1][i];
+					
+					Bitmap icon = ((BitmapDrawable) getEntries().get(draw_icon_count - i - 1).getIcon(context)).getBitmap();
+					Rect src = new Rect(0, 0, icon.getWidth(), icon.getHeight());
+					Rect dst = new Rect(x, y, (int) (x + width * scale), (int) (y + height * scale));
+					canvas.drawBitmap(icon, src, dst, null);
 				}
 			}
 			icon_ = new BitmapDrawable(context.getResources(), bmp);
