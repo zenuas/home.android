@@ -34,7 +34,9 @@ public class Main
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.home);
 		
-		((ApplicationContext) getApplicationContext()).setMainActivity(this);
+		ApplicationContext app = (ApplicationContext) getApplicationContext();
+		app.setMainActivity(this);
+		app.sendBugReport();
 		
 		createHome();
 	}
