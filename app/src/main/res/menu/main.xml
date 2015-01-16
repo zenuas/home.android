@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    >
+
+    <item
+        android:id="@+id/hidden_applications"
+        android:title="@string/hidden_applications"
+        />
+    <item
+        android:id="@+id/send_bugreport"
+        android:title="@string/send_bugreport"
+        android:showAsAction="never"
+        />
+
+</menu>
